@@ -44,4 +44,4 @@ jobs:
           # Remove this line: body_path: CHANGELOG.md
           body: "Release ${{ github.ref_name }}" 
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
