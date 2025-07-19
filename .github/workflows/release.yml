@@ -34,15 +34,24 @@ jobs:
         run: |
           sha256sum filesorter* > checksums.txt
 
+      - name: Generate Changelog
+        uses: mikepenz/release-changelog-builder-action@v3
+        with:
+          configuration: |
+            categories:
+              - title: '🚀 Features'
+                labels: ['feature']
+              - title: '🐛 Fixes'
+                labels: ['bug']
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             filesorter.exe
             filesorter-linux
-            filesorter-macos-intel
-            filesorter-macos-arm
             checksums.txt
-          # body_path: CHANGELOG.md
+          body_path: CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
