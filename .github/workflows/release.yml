@@ -43,7 +43,7 @@ jobs:
                 labels: ['feature']
               - title: '🐛 Fixes'
                 labels: ['bug']
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.TOKEN }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -54,4 +54,4 @@ jobs:
             checksums.txt
           body_path: CHANGELOG.md
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
