@@ -33,18 +33,7 @@ jobs:
       - name: Generate checksums
         run: |
           sha256sum filesorter* > checksums.txt
-
-      - name: Generate Changelog
-        uses: mikepenz/release-changelog-builder-action@v3
-        with:
-          configuration: |
-            categories:
-              - title: '🚀 Features'
-                labels: ['feature']
-              - title: '🐛 Fixes'
-                labels: ['bug']
-          token: ${{ secrets.TOKEN }}
-
+          
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -52,6 +41,7 @@ jobs:
             filesorter.exe
             filesorter-linux
             checksums.txt
-          body_path: CHANGELOG.md
+          # Remove this line: body_path: CHANGELOG.md
+          body: "Release ${{ github.ref_name }}" 
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
