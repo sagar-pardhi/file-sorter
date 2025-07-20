@@ -2,49 +2,75 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*" # Trigger on version tags like v1.0.0
+    tags: ['v*']
 
 permissions:
   contents: write
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: "1.21"
-
-      - name: Build Windows
-        run: GOOS=windows GOARCH=amd64 go build -o filesorter.exe
-        env:
-          CGO_ENABLED: 0
-
-      - name: Build Linux
-        run: GOOS=linux GOARCH=amd64 go build -o filesorter-linux
-
-      - name: Build macOS Intel
-        run: GOOS=darwin GOARCH=amd64 go build -o filesorter-macos-intel
-
-      - name: Build macOS ARM
-        run: GOOS=darwin GOARCH=arm64 go build -o filesorter-macos-arm
-
-      - name: Generate checksums
-        run: |
-          sha256sum filesorter* > checksums.txt
-          
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            filesorter.exe
-            filesorter-linux
-            checksums.txt
-          # Remove this line: body_path: CHANGELOG.md
-          body: "Release ${{ github.ref_name }}" 
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+        
+    - name: Build
+      run: |
+        GOOS=${{ matrix.os == 'windows-latest' && 'windows' || matrix.os == 'macos-latest' && 'darwin' || 'linux' }} \
+        GOARCH=amd64 \
+        go build -o filesorter${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+        
+    - name: Create Windows Installer
+      if: matrix.os == 'windows-latest'
+      run: |
+        choco install nsis -y
+        makensis -DVERSION=${{ github.ref_name }} installer.nsi
+        
+    - name: Create macOS Package
+      if: matrix.os == 'macos-latest'
+      run: |
+        pkgbuild --root pkgroot --identifier com.yourcompany.filesorter \
+          --version ${{ github.ref_name }} --install-location "/" filesorter.pkg
+        
+    - name: Create Linux Packages
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        # DEB
+        mkdir -p debian/usr/bin
+        cp filesorter debian/usr/bin/
+        dpkg-deb --build debian filesorter.deb
+        
+        # RPM
+        mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS}
+        cp filesorter rpmbuild/BUILD/
+        echo "%files\n/usr/bin/filesorter" > rpmbuild/SPECS/filesorter.spec
+        rpmbuild -bb rpmbuild/SPECS/filesorter.spec
+        
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.os }}-installers
+        path: |
+          *.exe
+          *.pkg
+          *.deb
+          *.rpm
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          *.exe
+          *.pkg
+          *.deb
+          *.rpm
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
